@@ -1,8 +1,11 @@
 package aws
 
 import (
+	"fmt"
+	"log"
 	"regexp"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -24,6 +27,9 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 			"client_metadata": {
 				Type:     schema.TypeMap,
 				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 			"desired_delivery_mediums": {
 				Type:     schema.TypeSet,
@@ -81,7 +87,7 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 				},
 			},
 			"username": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.All(
 					validation.StringLenBetween(1, 128),
@@ -89,7 +95,7 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 				),
 			},
 			"user_pool_id": {
-				Type: schema.TypeString,
+				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.All(
 					validation.StringLenBetween(1, 55),
@@ -123,14 +129,16 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 func resourceAwsCognitoUserCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cognitoidpconn
 
-	// why are some properties set here, but normally they are set after calling d.GetOk()
+	// why are some properties set with Get() rather than GetOk(). I understand GetOk() allows you to check if there is a value.
+	// Is it to do with option/required fields? Is it to allow default values for optional?
+	// we do we have both Optional and Required attributes in the schema?
 	params := &cognitoidentityprovider.AdminCreateUserInput{
-		Username: aws.String(d.Get("username").(string)),
+		Username:   aws.String(d.Get("username").(string)),
 		UserPoolId: aws.String(d.Get("user_pool_id").(string)),
-	},
+	}
 
 	if v, ok := d.GetOk("client_metadata"); ok {
-		params.ClientMetadata = 
+		params.ClientMetadata = stringMapToPointers(v.(map[string]interface{}))
 	}
 
 	if v, ok := d.GetOk("desired_delivery_mediums"); ok {
@@ -142,14 +150,40 @@ func resourceAwsCognitoUserCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if v, ok := d.GetOk("message_action"); ok {
-		params.MessageAction = aws.String(v.(string)),
+		params.MessageAction = aws.String(v.(string))
 	}
-	
-	if v, ok := d.GetOk("temporary_password"); ok {
-		params.MessageAction = aws.String(v.(string)),
-	}	
 
-	// how to do complex 
+	if v, ok := d.GetOk("temporary_password"); ok {
+		params.TemporaryPassword = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("user_attributes"); ok {
+		ua, err := expandAttributeTypes(v.([]interface{}))
+		if err != nil {
+			return err
+		}
+		params.UserAttributes = ua
+	}
+
+	if v, ok := d.GetOk("validation_data"); ok {
+		ua, err := expandAttributeTypes(v.([]interface{}))
+		if err != nil {
+			return err
+		}
+		params.ValidationData = ua
+	}
+
+	log.Printf("[DEBUG] Creating Cognito User: %s", params)
+
+	resp, err := conn.AdminCreateUser(params)
+
+	if err != nil {
+		return fmt.Errorf("Error creating Cognito User: %s", err)
+	}
+
+	d.SetId(*resp.User.Username)
+
+	return resourceAwsCognitoUserGroupRead(d, meta)
 }
 
 func resourceAwsCognitoUserRead(d *schema.ResourceData, meta interface{}) error {
@@ -159,4 +193,23 @@ func resourceAwsCognitoUserUpdate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceAwsCognitoUserDelete(d *schema.ResourceData, meta interface{}) error {
+}
+
+func expandAttributeTypes(s []interface{}) ([]*cognitoidentityprovider.AttributeType, error) {
+	if len(s) == 0 {
+		return nil, nil
+	}
+	attributeTypes := make([]*cognitoidentityprovider.AttributeType, 0)
+	for _, raw := range s {
+		p := raw.(map[string]interface{})
+		n := p["name"].(string)
+		v := p["value"].(string)
+
+		attributeType := &cognitoidentityprovider.AttributeType{
+			Name:  aws.String(n),
+			Value: aws.String(v),
+		}
+		attributeTypes = append(attributeTypes, attributeType)
+	}
+	return attributeTypes, nil
 }
