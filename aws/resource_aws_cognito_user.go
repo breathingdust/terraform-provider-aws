@@ -187,6 +187,28 @@ func resourceAwsCognitoUserCreate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceAwsCognitoUserRead(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).cognitoidpconn
+
+	params := &cognitoidentityprovider.AdminGetUserRequest{
+		Username:   aws.String(d.Id()),
+		UserPoolId: aws.String(d.Get("user_pool_id").(string)),
+	}
+
+	resp, err := conn.AdminGetUser(params)
+
+	// There is also a UserNotFoundException. Which to use?
+	if isAWSErr(err, cognitoidentityprovider.ErrCodeResourceNotFoundException, "") {
+		log.Printf("[WARN] Cognito User (%s) not found, removing from state", d.Id())
+		d.SetId("")
+		return nil
+	}
+
+	if err != nil {
+		return fmt.Errorf("error describing Cognito User (%s): %w", d.Id(), err)
+	}
+
+	// How reconcile properties that exist on the create but not the get.?
+
 }
 
 func resourceAwsCognitoUserUpdate(d *schema.ResourceData, meta interface{}) error {
