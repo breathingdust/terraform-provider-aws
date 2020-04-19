@@ -189,7 +189,7 @@ func resourceAwsCognitoUserCreate(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsCognitoUserRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).cognitoidpconn
 
-	params := &cognitoidentityprovider.AdminGetUserRequest{
+	params := &cognitoidentityprovider.AdminGetUserInput{
 		Username:   aws.String(d.Id()),
 		UserPoolId: aws.String(d.Get("user_pool_id").(string)),
 	}
