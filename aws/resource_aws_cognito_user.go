@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
@@ -11,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 )
 
-func resourceAwsCognitoUserPool() *schema.Resource {
+func resourceAwsCognitoUser() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsCognitoUserCreate,
 		Read:   resourceAwsCognitoUserRead,
@@ -71,7 +72,8 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
-							Type: schema.TypeString,
+							Type:     schema.TypeString,
+							Required: true,
 							ValidateFunc: validation.All(
 								validation.StringLenBetween(1, 32),
 								// looks like the go sdk has validators in validators.go
@@ -108,7 +110,8 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
-							Type: schema.TypeString,
+							Type:     schema.TypeString,
+							Required: true,
 							ValidateFunc: validation.All(
 								validation.StringLenBetween(1, 32),
 								validation.StringMatch(regexp.MustCompile(`^[\p{L}\p{M}\p{S}\p{N}\p{P}]+`), "must contain only non-whitespace characters"),
@@ -121,6 +124,18 @@ func resourceAwsCognitoUserPool() *schema.Resource {
 						},
 					},
 				},
+			},
+			"user_create_date": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"user_last_modified_date": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"user_status": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -209,12 +224,24 @@ func resourceAwsCognitoUserRead(d *schema.ResourceData, meta interface{}) error 
 
 	// How reconcile properties that exist on the create but not the get.?
 
+	d.Set("enabled", resp.Enabled)
+
+	if err := d.Set("user_create_date", resp.UserCreateDate.Format(time.RFC3339)); err != nil {
+		return err
+	}
+
+	if err := d.Set("user_last_modified_date", resp.UserLastModifiedDate.Format(time.RFC3339)); err != nil {
+		return err
+	}
+	return err
 }
 
 func resourceAwsCognitoUserUpdate(d *schema.ResourceData, meta interface{}) error {
+	return nil
 }
 
 func resourceAwsCognitoUserDelete(d *schema.ResourceData, meta interface{}) error {
+	return nil
 }
 
 func expandAttributeTypes(s []interface{}) ([]*cognitoidentityprovider.AttributeType, error) {
