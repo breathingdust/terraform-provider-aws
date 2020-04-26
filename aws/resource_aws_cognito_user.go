@@ -198,7 +198,7 @@ func resourceAwsCognitoUserCreate(d *schema.ResourceData, meta interface{}) erro
 
 	d.SetId(*resp.User.Username)
 
-	return resourceAwsCognitoUserGroupRead(d, meta)
+	return resourceAwsCognitoUserRead(d, meta)
 }
 
 func resourceAwsCognitoUserRead(d *schema.ResourceData, meta interface{}) error {

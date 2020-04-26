@@ -35,8 +35,8 @@ func TestAccAWSCognitoUser_basic(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckAWSCognitoUserExists(resourceName),
 					resource.TestCheckResourceAttr(resourceName, "username", username),
-					resource.TestCheckResourceAttrSet(resourceName, "creation_date"),
-					resource.TestCheckResourceAttrSet(resourceName, "last_modified_date"),
+					resource.TestCheckResourceAttrSet(resourceName, "user_create_date"),
+					resource.TestCheckResourceAttrSet(resourceName, "user_last_modified_date"),
 				),
 			},
 			{
