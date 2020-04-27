@@ -1,9 +1,11 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -20,7 +22,7 @@ func resourceAwsCognitoUser() *schema.Resource {
 		Delete: resourceAwsCognitoUserDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceAwsCognitoUserImport,
 		},
 
 		// https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_AdminCreateUser.html
@@ -142,11 +144,9 @@ func resourceAwsCognitoUser() *schema.Resource {
 }
 
 func resourceAwsCognitoUserCreate(d *schema.ResourceData, meta interface{}) error {
+	fmt.Println("resourceAwsCognitoUserCreate")
 	conn := meta.(*AWSClient).cognitoidpconn
 
-	// why are some properties set with Get() rather than GetOk(). I understand GetOk() allows you to check if there is a value.
-	// Is it to do with option/required fields? Is it to allow default values for optional?
-	// we do we have both Optional and Required attributes in the schema?
 	params := &cognitoidentityprovider.AdminCreateUserInput{
 		Username:   aws.String(d.Get("username").(string)),
 		UserPoolId: aws.String(d.Get("user_pool_id").(string)),
@@ -196,16 +196,21 @@ func resourceAwsCognitoUserCreate(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error creating Cognito User: %s", err)
 	}
 
-	d.SetId(*resp.User.Username)
+	d.SetId(fmt.Sprintf("%s/%s", d.Get("user_pool_id").(string), *resp.User.Username))
 
 	return resourceAwsCognitoUserRead(d, meta)
 }
 
 func resourceAwsCognitoUserRead(d *schema.ResourceData, meta interface{}) error {
+	fmt.Println("resourceAwsCognitoUserRead", d.Id(), d.Get("user_pool_id"))
 	conn := meta.(*AWSClient).cognitoidpconn
 
+	//if d.Get("user_pool_id") == "" {
+	fmt.Println(d.State())
+	//}
+
 	params := &cognitoidentityprovider.AdminGetUserInput{
-		Username:   aws.String(d.Id()),
+		Username:   aws.String(d.Get("username").(string)),
 		UserPoolId: aws.String(d.Get("user_pool_id").(string)),
 	}
 
@@ -221,8 +226,6 @@ func resourceAwsCognitoUserRead(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return fmt.Errorf("error describing Cognito User (%s): %w", d.Id(), err)
 	}
-
-	// How reconcile properties that exist on the create but not the get.?
 
 	d.Set("enabled", resp.Enabled)
 
@@ -261,4 +264,16 @@ func expandAttributeTypes(s []interface{}) ([]*cognitoidentityprovider.Attribute
 		attributeTypes = append(attributeTypes, attributeType)
 	}
 	return attributeTypes, nil
+}
+
+func resourceAwsCognitoUserImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	idSplit := strings.Split(d.Id(), "/")
+	if len(idSplit) != 2 {
+		return nil, errors.New("Error importing Cognito User. Must specify user_pool_id/username")
+	}
+	userPoolID := idSplit[0]
+	username := idSplit[1]
+	d.Set("user_pool_id", userPoolID)
+	d.Set("username", username)
+	return []*schema.ResourceData{d}, nil
 }
