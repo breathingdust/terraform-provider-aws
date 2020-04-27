@@ -32,11 +32,13 @@ func TestAccAWSCognitoUser_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccAWSCognitoUser_UserName(poolName, username),
-				Check:  resource.ComposeAggregateTestCheckFunc(
-				//testAccCheckAWSCognitoUserExists(resourceName),
-				//resource.TestCheckResourceAttr(resourceName, "username", username),
-				// resource.TestCheckResourceAttrSet(resourceName, "user_create_date"),
-				// resource.TestCheckResourceAttrSet(resourceName, "user_last_modified_date"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSCognitoUserExists(resourceName),
+					resource.TestCheckResourceAttr(resourceName, "username", username),
+					resource.TestCheckResourceAttrSet(resourceName, "user_create_date"),
+					resource.TestCheckResourceAttrSet(resourceName, "user_last_modified_date"),
+					resource.TestCheckResourceAttrSet(resourceName, "user_status"),
+					resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
 				),
 			},
 			{
@@ -49,14 +51,13 @@ func TestAccAWSCognitoUser_basic(t *testing.T) {
 }
 
 func testAccCheckAWSCognitoUserExists(name string) resource.TestCheckFunc {
-	fmt.Println("testAccCheckAWSCognitoUserExists")
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[name]
 		if !ok {
 			return fmt.Errorf("Not found: %s", name)
 		}
 
-		id := rs.Primary.ID
+		id := rs.Primary.Attributes["username"]
 		userPoolID := rs.Primary.Attributes["user_pool_id"]
 
 		if id == "" {
@@ -70,7 +71,7 @@ func testAccCheckAWSCognitoUserExists(name string) resource.TestCheckFunc {
 		conn := testAccProvider.Meta().(*AWSClient).cognitoidpconn
 
 		params := &cognitoidentityprovider.AdminGetUserInput{
-			Username:   aws.String(rs.Primary.ID),
+			Username:   aws.String(rs.Primary.Attributes["username"]),
 			UserPoolId: aws.String(rs.Primary.Attributes["user_pool_id"]),
 		}
 
@@ -80,15 +81,12 @@ func testAccCheckAWSCognitoUserExists(name string) resource.TestCheckFunc {
 }
 
 func testAccCheckAWSCognitoUserDestroy(s *terraform.State) error {
-	fmt.Println("testAccCheckAWSCognitoUserDestroy")
-
 	conn := testAccProvider.Meta().(*AWSClient).cognitoidpconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_cognito_user" {
 			continue
 		}
-		fmt.Println("testAccCheckAWSCognitoUserDestroy", rs.Primary.ID, rs.Primary.Attributes["user_pool_id"])
 
 		params := &cognitoidentityprovider.AdminGetUserInput{
 			Username:   aws.String(rs.Primary.ID),

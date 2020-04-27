@@ -127,6 +127,10 @@ func resourceAwsCognitoUser() *schema.Resource {
 					},
 				},
 			},
+			"enabled": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 			"user_create_date": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -144,7 +148,6 @@ func resourceAwsCognitoUser() *schema.Resource {
 }
 
 func resourceAwsCognitoUserCreate(d *schema.ResourceData, meta interface{}) error {
-	fmt.Println("resourceAwsCognitoUserCreate")
 	conn := meta.(*AWSClient).cognitoidpconn
 
 	params := &cognitoidentityprovider.AdminCreateUserInput{
@@ -202,12 +205,7 @@ func resourceAwsCognitoUserCreate(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceAwsCognitoUserRead(d *schema.ResourceData, meta interface{}) error {
-	fmt.Println("resourceAwsCognitoUserRead", d.Id(), d.Get("user_pool_id"))
 	conn := meta.(*AWSClient).cognitoidpconn
-
-	//if d.Get("user_pool_id") == "" {
-	fmt.Println(d.State())
-	//}
 
 	params := &cognitoidentityprovider.AdminGetUserInput{
 		Username:   aws.String(d.Get("username").(string)),
@@ -216,7 +214,6 @@ func resourceAwsCognitoUserRead(d *schema.ResourceData, meta interface{}) error 
 
 	resp, err := conn.AdminGetUser(params)
 
-	// There is also a UserNotFoundException. Which to use?
 	if isAWSErr(err, cognitoidentityprovider.ErrCodeResourceNotFoundException, "") {
 		log.Printf("[WARN] Cognito User (%s) not found, removing from state", d.Id())
 		d.SetId("")
@@ -228,6 +225,7 @@ func resourceAwsCognitoUserRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.Set("enabled", resp.Enabled)
+	d.Set("user_status", resp.UserStatus)
 
 	if err := d.Set("user_create_date", resp.UserCreateDate.Format(time.RFC3339)); err != nil {
 		return err
