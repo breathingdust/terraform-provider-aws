@@ -4,7 +4,7 @@
 
 The HashiCorp Terraform AWS provider team is :
 
-* Mary Curtrali - Product Manager [github](https://github.com/maryelizbeth) [twitter](https://twitter.com/marycutrali)
+* Mary Cutrali - Product Manager [github](https://github.com/maryelizbeth) [twitter](https://twitter.com/marycutrali)
 * Brian Flad - Engineering Lead [github](https://github.com/bflad) 
 * Graham Davison - Engineer [github](https://github.com/gdavison)
 * Angie Pinilla - Engineer [github](https://github.com/angie44)
