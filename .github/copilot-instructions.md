@@ -66,7 +66,7 @@ For changes to a specific service package (e.g., `ec2`):
 
 ```bash
 make fmt
-make golangci-lint1 PKG=ec2
+make golangci-lint PKG=ec2   # Full linting (or golangci-lint1 for quick check)
 make provider-lint PKG=ec2
 make test PKG=ec2
 ```
