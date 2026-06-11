@@ -4,7 +4,7 @@ go 1.26.2
 
 require (
 	github.com/YakDriver/copyplop v0.10.0
-	github.com/YakDriver/tfproviderdocs v0.25.0
+	github.com/YakDriver/tfproviderdocs v0.26.0
 	github.com/client9/misspell v0.3.4
 	github.com/golangci/golangci-lint/v2 v2.11.4
 	github.com/hashicorp/go-changelog v0.0.0-20250127101332-effe3832fb0b
@@ -258,7 +258,7 @@ require (
 	github.com/maratori/testableexamples v1.0.1 // indirect
 	github.com/maratori/testpackage v1.1.2 // indirect
 	github.com/matoous/godox v1.1.0 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.21 // indirect
 	github.com/mattn/go-shellwords v1.0.12 // indirect
